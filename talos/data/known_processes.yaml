@@ -1,0 +1,240 @@
+# Curated knowledge base of common macOS processes.
+#
+# Each entry maps a process (by name, and optionally by exe-path substring) to a
+# plain-English description, its vendor, a category, and whether it is generally safe
+# to terminate. Seeded from Apple documentation, launchd.info, and community references.
+#
+# Matching precedence (see knowledge.py):
+#   1. exact name + path_contains match
+#   2. exact name match
+#   3. name_pattern (substring) match
+#
+# category ∈ system_critical | system_service | trusted_app | known_safe_to_kill
+# safe_to_kill: true means quitting it will not harm the system.
+
+processes:
+  # ---- Apple system, never kill ----
+  - name: launchd
+    vendor: Apple
+    category: system_critical
+    safe_to_kill: false
+    description: "The macOS service manager (PID 1). Bootstraps and supervises every other daemon. Killing it panics the system."
+
+  - name: kernel_task
+    vendor: Apple
+    category: system_critical
+    safe_to_kill: false
+    description: "Kernel housekeeping task. Manages CPU thermal/load; high CPU here is the kernel throttling heat, not a runaway app."
+
+  - name: WindowServer
+    vendor: Apple
+    category: system_critical
+    safe_to_kill: false
+    description: "Draws everything on screen and routes input. Quitting it logs you out instantly."
+
+  - name: loginwindow
+    vendor: Apple
+    category: system_critical
+    safe_to_kill: false
+    description: "Manages login session and logout. Owns your GUI session lifecycle."
+
+  - name: WindowManager
+    vendor: Apple
+    category: system_critical
+    safe_to_kill: false
+    description: "Stage Manager / window management service."
+
+  # ---- Apple system services, leave running ----
+  - name: mds
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Spotlight metadata server. Indexes files for search; transient high CPU after large file changes is normal."
+  - name: mds_stores
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Spotlight index store writer."
+  - name: mdworker
+    name_pattern: mdworker
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Spotlight worker that indexes a batch of files. Short-lived; safe to kill, launchd respawns as needed."
+  - name: bird
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "iCloud Documents sync daemon. Safe to restart; it resumes sync."
+  - name: cloudd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "CloudKit daemon backing iCloud-enabled apps."
+  - name: nsurlsessiond
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Background URL downloads/uploads (iCloud, App Store, system). Often the owner of legitimate background egress."
+  - name: trustd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Certificate trust evaluation daemon. Contacts Apple OCSP/CRL endpoints — expected egress on 80/443."
+  - name: apsd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Apple Push Notification daemon. Maintains a persistent connection to Apple on port 5223 — expected egress."
+  - name: rapportd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Continuity/AirDrop/Handoff discovery between Apple devices on the local network."
+  - name: sharingd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "AirDrop, Handoff, shared clipboard, and Instant Hotspot."
+  - name: spotlightknowledged
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Spotlight suggestions / on-device knowledge indexing."
+  - name: ReportCrash
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Generates a crash report when an app crashes. Safe to kill."
+  - name: distnoted
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Distributed notification daemon used for inter-process messaging."
+  - name: fairplayd
+    name_pattern: fairplayd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Apple FairPlay DRM daemon. Decrypts copy-protected content so it can play — Apple TV/Music purchases, and DRM streaming (Netflix etc.) in Safari. Killing it breaks protected playback; it relaunches on demand."
+  - name: fseventsd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "File-system events daemon. Notifies apps (Spotlight, Time Machine, backup tools) when files change. Core plumbing — leave it."
+  - name: locationd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Location services daemon — provides Wi-Fi/Bluetooth-based location to apps that you've granted access. Disable via System Settings, not by killing."
+  - name: tccd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Transparency, Consent & Control daemon — enforces the privacy permission prompts (camera, mic, files, screen recording). Security-critical; do not kill."
+  - name: coreauthd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Core authentication daemon — handles Touch ID / password authorization prompts. Security plumbing."
+  - name: identityservicesd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Identity Services — backs iMessage/FaceTime/Continuity account identity. Maintains expected connections to Apple."
+  - name: akd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Apple ID authentication (AuthKit) daemon — manages Apple ID tokens for iCloud and App Store. Expected Apple egress."
+  - name: parsecd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Backs Siri Suggestions and Spotlight web/Siri results. Talks to Apple. Safe to kill; it relaunches."
+  - name: suggestd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "On-device suggestions (contacts, events, Spotlight). Relaunches if killed."
+  - name: mobileassetd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Downloads/manages Apple 'mobile assets' (dictionaries, Siri voices, on-device models). Background; safe to kill."
+  - name: mdnsresponder
+    name_pattern: mDNSResponder
+    vendor: Apple
+    category: system_service
+    safe_to_kill: false
+    description: "Bonjour / DNS resolver daemon — handles all DNS lookups and local network discovery. Killing it breaks networking."
+  - name: dasd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Duet Activity Scheduler — schedules background maintenance work. Relaunches if killed."
+  - name: analyticsd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Diagnostics & usage analytics collector. Safe to kill; governed by your analytics privacy setting."
+  - name: symptomsd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Network condition monitoring (Symptoms framework) used to pick the best network. Relaunches if killed."
+  - name: useractivityd
+    vendor: Apple
+    category: system_service
+    safe_to_kill: true
+    description: "Handoff / user-activity continuity between Apple devices. Safe to kill."
+
+  # ---- Common third-party trusted apps ----
+  - name: Google Chrome
+    name_pattern: Google Chrome
+    vendor: Google
+    category: trusted_app
+    safe_to_kill: true
+    description: "Chrome browser (and its many helper/renderer processes). Memory-heavy by design; quitting closes your tabs."
+  - name: Google Chrome Helper
+    name_pattern: Chrome Helper
+    vendor: Google
+    category: known_safe_to_kill
+    safe_to_kill: true
+    description: "A Chrome renderer/GPU/plugin child process. Killing one closes a tab or extension, not the whole browser."
+  - name: Slack
+    name_pattern: Slack
+    vendor: Slack Technologies
+    category: trusted_app
+    safe_to_kill: true
+    description: "Slack desktop (Electron) client and its helpers. Safe to quit."
+  - name: Code Helper
+    name_pattern: Code Helper
+    vendor: Microsoft
+    category: known_safe_to_kill
+    safe_to_kill: true
+    description: "Visual Studio Code helper/renderer process."
+  - name: Electron
+    name_pattern: Electron
+    vendor: various
+    category: trusted_app
+    safe_to_kill: true
+    description: "An Electron-based desktop app. Identify the parent app before killing."
+  - name: com.docker.backend
+    name_pattern: com.docker
+    vendor: Docker
+    category: trusted_app
+    safe_to_kill: true
+    description: "Docker Desktop backend / VM bridge. Quitting stops your containers."
+  - name: node
+    name_pattern: node
+    vendor: Node.js
+    category: known_safe_to_kill
+    safe_to_kill: true
+    description: "A Node.js runtime — likely a dev server or build tool. Check the command line before killing."
+  - name: Python
+    name_pattern: python
+    vendor: Python
+    category: known_safe_to_kill
+    safe_to_kill: true
+    description: "A Python interpreter. Could be a script, dev server, or this very tool — check the command line."
